@@ -3,6 +3,8 @@
 A Flask web app that classifies Pokémon images into their respective **types** using a trained **CNN model**.  
 Upload an image, and the app predicts the Pokémon’s type with probability scores.
 
+
+Take the data set from - https://www.kaggle.com/datasets/vishalsubbiah/pokemon-images-and-types/code
 ---
 
 ## 📂 Project Files
