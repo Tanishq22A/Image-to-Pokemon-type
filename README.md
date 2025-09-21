@@ -1,82 +1,42 @@
-# Image-to-Pokemon-type
-Pokemon Type Classifier: A CNN-based project that predicts a Pokémon’s primary type from an image and serves real-time results via a Flask app. Includes a training notebook, metadata CSV, and a web UI plus JSON API. Upload an image, get top label and sorted probabilities; model expects 120×120 RGB normalized inputs.
+#Pokemon Type Classifier (CNN + Flask)
+A complete, reproducible pipeline that trains a convolutional neural network (CNN) to predict a Pokémon’s primary type from an image and serves real-time predictions via a lightweight Flask web app with drag‑and‑drop upload and a JSON API.
 
+Features
+CNN trained on 120×120 RGB inputs normalized to for type prediction.
 
+Web UI: client‑side preview, file validation, and sorted per‑class probabilities.
 
-Project: Pokemon Type Classifier (CNN + Flask)
+API: POST /api/predict returns label, index, and probabilities for integration.
 
-Overview
+Clear separation of training (notebook) and serving (Flask app).
+Repository structure
+app.py — Flask server with UI and /api/predict endpoint.
 
-Train a CNN on 120x120 RGB sprites to classify primary type into 11 classes and serve predictions via Flask with a drag-and-drop UI.
+notebooks/pokemon.ipynb — exploration, training, and model export.
 
-The app exposes a web UI at GET / and a JSON API at POST /api/predict that returns label, index, and per-class probabilities.
+data/pokemon.csv — Pokémon names, types, and evolution metadata.
 
-Repo layout
+model.meta.json — auxiliary metadata (classes and encodings).
 
-notebooks/pokemon.ipynb: end-to-end data exploration, augmentation, CNN training, and model saving.
+models/ — place trained model here (e.g., models/pokemoncnn.h5).
 
-app.py: Flask server loading models/pokemoncnn.h5 and predicting on uploaded PNG/JPG/JPEG.
+Suggested ancillary files:
 
-data/pokemon.csv: names, types, evolutions source.
+requirements.txt — Python dependencies.
 
-model.meta.json: auxiliary metadata of label classes and tabular encodings.
+Procfile, runtime.txt — for PaaS deploys.
 
-models/: place pokemoncnn.h5 after training.
+Dockerfile, .dockerignore — for containerized runs.
 
-Setup
+.gitignore — ignore venv, caches, large artifacts.
 
-Python
+Requirements
+Python 3.11+
 
-Create venv and install requirements:
+TensorFlow/Keras, Flask, Pillow, NumPy, Gunicorn (for prod)
 
-python -m venv venv && source venv/bin/activate # Windows: venv\Scripts\activate
+Example requirements.txt:
 
-pip install -r requirements.txt
-
-Train and export model
-
-Open notebooks/pokemon.ipynb, run through to train CNN, then save:
-
-cnn.save("models/pokemoncnn.h5") # ensure models/ exists
-
-Alternatively, place an existing pokemoncnn.h5 into models/.
-
-Run locally
-
-export MODELPATH=models/pokemoncnn.h5
-
-python app.py
-
-Visit http://localhost:5000 and upload an image.
-
-API
-
-POST /api/predict form-data file=<image>
-
-Response: { "label": "Water", "index": 0, "probs": [..], "classes": ["Water","Normal",...]}
-
-Docker
-
-docker build -t pokemon-type-app .
-
-docker run -p 5000:5000 -e MODELPATH=models/pokemoncnn.h5 pokemon-type-app
-
-Deploy (Heroku/Render)
-
-Include Procfile and runtime.txt; set MODELPATH to models/pokemoncnn.h5 and ensure the model is committed or uploaded to a persistent store.
-
-Notes
-
-The model expects 120x120 RGB and applies float32 normalization by 255.0.
-
-Allowed file types: png, jpg, jpeg; max 5 MB enforced in UI.
-
-LICENSE (MIT)
-Copyright (c) 2025
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software…
-
-requirements.txt
 flask==3.0.3
 
 gunicorn==21.2.0
@@ -89,116 +49,92 @@ tensorflow==2.15.0
 
 keras==2.15.0
 
-runtime.txt
-python-3.11.9
+Quickstart
+Setup
 
-Procfile
-web: gunicorn app:app --timeout 120
+python -m venv venv
 
-Dockerfile
-FROM python:3.11-slim
+source venv/bin/activate # Windows: venv\Scripts\activate
 
-ENV PYTHONDONTWRITEBYTECODE=1
+pip install -r requirements.txt
 
-ENV PYTHONUNBUFFERED=1
+Train and export model
 
-WORKDIR /app
+Open notebooks/pokemon.ipynb and run cells to train the CNN.
 
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential libglib2.0-0 && rm -rf /var/lib/apt/lists/*
+Save the model to models/pokemoncnn.h5 (ensure the models/ folder exists).
 
-COPY requirements.txt .
+Run the server
 
-RUN pip install --no-cache-dir -r requirements.txt
+export MODELPATH=models/pokemoncnn.h5
 
-COPY . .
+python app.py
 
-ENV MODELPATH=models/pokemoncnn.h5
+Open http://localhost:5000 to use the web UI.
 
-EXPOSE 5000
+API usage
+Endpoint
 
-CMD ["python", "app.py"]
+POST /api/predict
 
-.dockerignore
-venv
+Request
 
-pycache
+Content-Type: multipart/form-data
 
-.git
+Key: file Value: <image file: PNG/JPG/JPEG, up to ~5 MB>
 
-models/*.keras
+Response (JSON)
 
-dist
+{
+"label": "Water",
+"index": 0,
+"probs": [0.42, 0.18, ...],
+"classes": ["Water","Normal","Fire","Grass","Ghost","Bug","Electric","Poison","Psychic","Rock","Fighting"]
+}
 
-build
+Model expectations
+Input: 120×120 RGB, float32, normalized by 255.0
 
-app.py (use attached version verbatim)
-Already includes:
+Output: probabilities over the configured label order (ensure label order during training matches inference).
 
-Settings: IMGSIZE (120,120), NORMALIZE255=True, MODELPATH env with default pokemoncnn.h5, allowed extensions, IDX2LABEL.
+Docker (optional)
+docker build -t pokemon-type-app .
 
-Model load: tf.keras.models.load_model(MODELPATH).
+docker run -p 5000:5000 -e MODELPATH=models/pokemoncnn.h5 pokemon-type-app
 
-Routes:
+Deployment (optional)
+PaaS (e.g., Render/Heroku):
 
-GET /: renders upload UI.
+Include Procfile (web: gunicorn app:app --timeout 120) and runtime.txt (python-3.11.x).
 
-POST /predict: legacy compatibility.
+Set MODELPATH env var to the model path.
 
-POST /api/predict: JSON response with label/index/probs/classes.
+Ensure the model file is available (commit to repo or fetch from storage on startup).
 
-Frontend: drag-and-drop, preview, client-side checks, results table sorted by probability.
+Data
+data/pokemon.csv includes Name, Type1, Type2, and Evolution columns used for exploration and potential label mapping.
 
-Action: place this file at repo root as app.py.
+The training notebook demonstrates reading this file and preparing data; ensure any custom datasets match the model’s input pipeline.
 
-notebooks/pokemon.ipynb
-Place the provided notebook in notebooks/pokemon.ipynb.
+Customization
+Changing labels: update the label list consistently in training and serving.
 
-It:
+Changing image size: retrain the model and update preprocess settings to match.
 
-Loads data/pokemon.csv.
+Using .keras format: adjust MODELPATH and load routine accordingly.
 
-Builds augmented dataset with ImageDataGenerator.
+Troubleshooting
+Model not found: verify MODELPATH and that models/pokemoncnn.h5 exists.
 
-Defines a CNN with Conv2D/MaxPool/Dropout/Flatten/Dense softmax over 11 classes.
+Mismatched labels: ensure the served label order matches the trained model’s classes.
 
-Trains with accuracy improving across epochs; then saves model to pokemoncnn.h5.
+Large files rejected: UI enforces ~5 MB; compress or resize images.
 
-Ensure the final cell saves to models/pokemoncnn.h5 relative to repo root.
+License
+MIT (or adapt to project needs).
 
-data/pokemon.csv
-Place the provided CSV in data/pokemon.csv; notebook expects this path.
+Acknowledgments
+Thanks to the broader open-source community for tools that make rapid prototyping, training, and serving ML models straightforward.
 
-model.meta.json
-Place at repo root as provided; optional for app, useful for aux tooling or future features.
 
-src/train/prepare_data.py (optional utility)
-Read data/pokemon.csv, validate columns [Name, Type1, Type2, Evolution], and print label distribution of Type1 to help balance decisions.
-
-Example content:
-
-Reads CSV, prints value_counts(Type1), checks images if integrated.
-
-src/train/export_model.py (optional utility)
-Loads a trained Keras model path and saves to models/pokemoncnn.h5 or .keras.
-
-Environment variables
-MODELPATH: path to .h5 (default models/pokemoncnn.h5).
-
-PORT: Flask port (default 5000).
-
-How to use
-Copy the files into a fresh folder matching the tree above.
-
-Commit and push to GitHub:
-
-git init && git add . && git commit -m "Initial commit: Pokemon Type Classifier" && git branch -M main && git remote add origin <repo-url> && git push -u origin main
-
-Train and save model via notebook, then run app locally or with Docker.
-
-Notes and caveats
-Ensure the saved model name matches MODELPATH; the app defaults to pokemoncnn.h5 in models/.
-
-The notebook’s final cells include guidance to save and write app.py; in this repo, app.py is already present—only execute the save step.
-
-If converting to the newer Keras format, update MODELPATH and load routine accordingly (e.g., mymodel.keras). The current app expects .h5.
 
